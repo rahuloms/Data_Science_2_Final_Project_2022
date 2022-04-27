@@ -15,7 +15,7 @@ from plotnine import *
 st.title("Predicting Median Household Incomes for Counties in USA!")
 
 st.write("""
-# This project aims to predict whether a given county in the USA is above or below the national median income
+## This project aims to predict whether a given county in the USA is above or below the national median income
 ### Classifiers: Logistic, SVM and Linear SVM""")
 
 # st.selectbox("Choose data:", ("Iris", "Breast Cancer"))
