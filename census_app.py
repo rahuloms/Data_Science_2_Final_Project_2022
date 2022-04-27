@@ -86,6 +86,9 @@ st.write(f"Test score: {round(mod.score(X_test, y_test), 2)}")
 
 
 #### Plot
+import pandas as pd
+import altair as alt
+
 
 ### Apply PCA to get 2 dimensions
 pca = PCA(2)
