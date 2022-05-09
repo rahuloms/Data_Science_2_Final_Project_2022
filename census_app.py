@@ -134,6 +134,13 @@ if __name__ == "__main__":
 
 
 ## Classifiers
+
+st.header("Machine Learning")
+
+
+st.write("""
+###### We can run ML models below and tune hyperparameters to predict whether a county is above or below the national median household income:""")
+
 c_name = st.selectbox("Choose an algorithm:", ("Logistic Regression", "SVM", "Linear SVM"))
 
 data = pd.read_csv("census.csv")
