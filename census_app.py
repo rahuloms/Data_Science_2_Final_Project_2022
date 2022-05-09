@@ -2,6 +2,10 @@ import streamlit as st
 from sklearn import datasets
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
@@ -12,31 +16,131 @@ from sklearn.metrics import accuracy_score
 from sklearn.decomposition import PCA
 from plotnine import *
 
-st.title("Predicting Median Household Incomes for Counties in USA!")
 
 st.write("""
-## This project aims to predict whether the median household income of a given county in the USA is above or below the national median income
-### Classifiers: Logistic, SVM and Linear SVM""")
+## Median Household Incomes of US Counties""")
 
-# st.selectbox("Choose data:", ("Iris", "Breast Cancer"))
+st.write("""
+##### This project aims to predict whether the median household income of a given county in the USA is above or below the national median income""")
 
-# Make selectbox a sidebar
-dataset_name = st.sidebar.selectbox("Choose data:", ("Census1", "Census2"))
+st.write("""
+###### Use this app for visualizing the data, looking at a map of counties with detailed information and predicting whether a county is above or below the national median household income:""")
+
+
+vizdf = pd.read_csv('fips.csv')
+
+# Subset the data for Visualizations
+
+vizdf['median_hh_income'] = vizdf['median_hh_income'].astype('float')
+vizdf['graduate_attainment_pct'] = vizdf['graduate_attainment_pct'].astype('float')
+vizdf['below_poverty_lvl_pct'] = vizdf['below_poverty_lvl_pct'].astype('float')
+
+income_high = vizdf.nlargest(20, ['median_hh_income'])
+income_low = vizdf.nsmallest(20, ['median_hh_income'])
+graduate_high = vizdf.nlargest(20, ['graduate_attainment_pct'])
+graduate_low = vizdf.nsmallest(20, ['graduate_attainment_pct'])
+poverty_high = vizdf.nlargest(20, ['below_poverty_lvl_pct'])
+poverty_low = vizdf.nsmallest(20, ['below_poverty_lvl_pct'])
+
+##############
+def main():
+    page = st.selectbox(
+            "Select an action",
+            [
+                "Exploratory Data Analysis", #First Page
+                "Choropleth" #Second Page
+            ]
+    )
+    if page == "Exploratory Data Analysis":
+        eda()
+
+    elif page == "Choropleth":
+        choropleth()
+
+############
+
+def eda():
+    st.header("Visualizations")
+    sd = st.radio(
+        "Select data to visualize:", #Drop Down Menu Name
+        [
+            "Top 20 Counties by Median Household Income", #First option
+            "Bottom 20 Counties by Median Household Income", #Second option
+            "Top 20 Counties by % of Population with Graduate Degrees", #Third option
+            "Bottom 20 Counties by % of Population with Graduate Degrees",
+            "Top 20 Counties by % of Population below Poverty Level", #Fourth option
+            "Bottom 20 Counties by % of Population below Poverty Level"
+        ]
+    )
+
+    fig = plt.figure(figsize=(12, 12))
+    sns.set(style="darkgrid")
+
+    if sd == "Top 20 Counties by Median Household Income":
+        sns.barplot(y="county_state_name",  x="median_hh_income", data=income_high, color='darkblue')
+        plt.title('Top 20 Counties by Median Household Income')
+
+    elif sd == "Bottom 20 Counties by Median Household Income":
+        sns.barplot(y="county_state_name",  x="median_hh_income", data=income_low, color='darkblue')
+        plt.title('Bottom 20 Counties by Median Household Income')
+
+    elif sd == "Top 20 Counties by % of Population with Graduate Degrees":
+        sns.barplot(y="county_state_name",  x="graduate_attainment_pct", data=graduate_high, color='darkblue')
+        plt.title('Top 20 Counties by % Population of Graduates')
+
+    elif sd == "Bottom 20 Counties by % of Population with Graduate Degrees":
+        sns.barplot(y="county_state_name",  x="graduate_attainment_pct", data=graduate_low, color='darkblue')
+        plt.title('Bottom 20 Counties by % Population of Graduates')
+
+    elif sd == "Top 20 Counties by % of Population below Poverty Level":
+        sns.barplot(y="county_state_name",  x="below_poverty_lvl_pct", data=poverty_high, color='darkblue')
+        plt.title('Top 20 Counties by % Population Below Poverty Level')
+
+    elif sd == "Bottom 20 Counties by % of Population below Poverty Level":
+        sns.barplot(y="county_state_name",  x="below_poverty_lvl_pct", data=poverty_low, color='darkblue')
+        plt.title('Bottom 20 Counties by % Population Below Poverty Level')
+
+    st.pyplot(fig)
+
+
+
+
+############
+# choropleth
+df = pd.read_excel("fips.xlsx", dtype={"fips": str})
+
+def choropleth():
+    st.header("Map")
+
+    from urllib.request import urlopen
+    import json
+    with urlopen('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json') as response:
+            counties = json.load(response)
+
+    fig = px.choropleth(df, geojson=counties, locations='fips', color='median_hh_income', hover_data=['text'],
+                           color_continuous_scale="Viridis",
+                           range_color=(0, 150000),
+                           scope="usa",
+                           labels={'median_hh_income':'Median Hh Income'}
+                          )
+    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+    st.plotly_chart(fig)
+
+if __name__ == "__main__":
+    main()
+
+##################
 
 
 ## Classifiers
-c_name = st.sidebar.selectbox("Choose an algorithm:", ("Logistic Regression", "SVM", "Linear SVM"))
+c_name = st.selectbox("Choose an algorithm:", ("Logistic Regression", "SVM", "Linear SVM"))
 
-def get_dataset(dataset_name):
-     if dataset_name == "Census1":
-         data = pd.read_csv("census.csv")
-     else:
-         data = pd.read_csv("census.csv")
-     X = data[['graduate_attainment_pct','health_insurance_pct','below_poverty_lvl_pct','occupied_houses_pct','no_vehicles_hh_pct','pop_over_18_pct']]
-     y = data['above_US_median_income']
-     return X, y
+data = pd.read_csv("census.csv")
+X = data[['graduate_attainment_pct','health_insurance_pct','below_poverty_lvl_pct','occupied_houses_pct','no_vehicles_hh_pct','pop_over_18_pct']]
+y = data['above_US_median_income']
 
-X, y = get_dataset(dataset_name)
+
 st.write("Obs:", X.shape[0])
 st.write("Features:", X.shape[1])
 st.write("Number of classes", len(np.unique(y)))
@@ -45,13 +149,13 @@ st.write("Number of classes", len(np.unique(y)))
 def add_param(c_name):
     params = dict()
     if c_name == "Logistic Regression":
-        C = st.sidebar.slider("C: less regularization ---->", 0.001, 10.0)
+        C = st.slider("C: less regularization ---->", 0.001, 10.0)
         params["C"] = C
     elif c_name == "SVM":
-        C = st.sidebar.slider("C: less regularization ---->", 0.001, 10.0)
+        C = st.slider("C: less regularization ---->", 0.001, 10.0)
         params["C"] = C
     else:
-        C = st.sidebar.slider("C: less regularization ---->", 0.001, 10.0)
+        C = st.slider("C: less regularization ---->", 0.001, 10.0)
         params["C"] = C
     return params
 
@@ -85,85 +189,33 @@ st.write(f"Training score: {round(mod.score(X_train, y_train), 2)}")
 st.write(f"Test score: {round(mod.score(X_test, y_test), 2)}")
 
 
-#### Plot
-import pandas as pd
-import altair as alt
+### Apply PCA Analysis for top Principal Components
+
+##################
+pcadata = pd.read_csv('fips.csv')
+
+features = pcadata[['graduate_attainment_pct','health_insurance_pct','below_poverty_lvl_pct','occupied_houses_pct','no_vehicles_hh_pct','pop_over_18_pct']]
 
 
-### Apply PCA to get 2 dimensions
-pca = PCA(2)
-X_plot = pd.DataFrame(pca.fit_transform(X))
+n_components = 4
 
-X_plot.columns = ["x", "y"]
+pca = PCA(n_components=n_components)
+components = pca.fit_transform(features)
 
-alt_plot = alt.Chart(X_plot).mark_circle().encode(x="x",
-y="y").interactive()
-alt_plot
+total_var = pca.explained_variance_ratio_.sum() * 100
 
-### GIS
-df = pd.read_excel("fips.xlsx", dtype={"fips": str})
+labels = {str(i): f"PC {i+1}" for i in range(n_components)}
+labels['color'] = 'Median Hh Income'
 
+fig = px.scatter_matrix(
+    components,
+    color=pcadata.median_hh_income,
+    dimensions=range(n_components),
+    labels=labels,
+    title=f'Total Explained Variance: {total_var:.2f}%'
+)
 
-from urllib.request import urlopen
-import json
-with urlopen('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json') as response:
-    counties = json.load(response)
-
-import plotly.express as px
-import plotly.graph_objects as go
-
-fig = px.choropleth(df, geojson=counties, locations='fips', color='median_hh_income', hover_data=['text'],
-                           color_continuous_scale="Viridis",
-                           range_color=(0, 150000),
-                           scope="usa",
-                           labels={'median_hh_income':'Median Household Income'}
-                          )
-
-
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+fig.update_traces(diagonal_visible=False)
 st.plotly_chart(fig)
 
-
-## Another Version
-
-#import plotly.graph_objects as go
-
-#import pandas as pd
-#df = pd.read_excel('fips.xlsx')
-
-#for col in df.columns:
-    #df[col] = df[col].astype(str)
-
-#df['text'] = df['county_state_name'] + '<br>' + \
-    #'% of Population with Graduate Degrees' + df['graduate_attainment_pct'] + '<br>' + \
-    #'% of Population with Health Insurance' + df['health_insurance_pct'] + '<br>' + \
-    #'% of Population Below Poverty Level' + df['below_poverty_lvl_pct'] + '<br>' + \
-    #'% of Population Over 18 Years of Age' + df['pop_over_18_pct'] + '<br>' + \
-    #'% of Houses Occupied' + df['occupied_houses_pct'] + '<br>' + \
-    #'% of Households without a Vehicle' + df['no_vehicles_hh_pct']
-
-#fig = go.Figure(data=go.Choropleth(
-    #locations=df['fips'],
-    #z=df['median_hh_income'].astype(float),
-    #locationmode='geojson-id',
-    #colorscale='Viridis',
-    #autocolorscale=False,
-    #range_color=(0, 150000),
-    #text=df['text'], # hover text
-    #marker_line_color='white', # line markers between states
-    #colorbar_title="Median Household Income"
-#))
-
-#fig.update_layout(
-    #title_text='US Counties by Median Household Income and Predictors',
-    #geo = dict(
-        #scope='usa',
-        #projection=go.layout.geo.Projection(type = 'albers usa'),
-        #showlakes=True, # lakes
-        #lakecolor='rgb(255, 255, 255)'),
-#)
-
-#st.plotly_chart(fig)
-
-
-## Another Attempt
+########### fin ###########
